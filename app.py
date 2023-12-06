@@ -107,7 +107,7 @@ class DocsSearch:
 
     def requirements_input(_self):
         # ユーザー入力画面
-        st.header("要件入力")
+        st.header("ドキュメント検索")
         user_input = st.text_area("実現したい機能を入力してください")
         if st.button("検索"):
             user_tags = _self.generate_tags(user_input, from_docs=False)  # タグ生成
@@ -152,7 +152,7 @@ class DocsSearch:
         # Streamlit UI
         selected = option_menu(
             "共通モジュール検索システム Ver.0.1",
-            ["要件入力", "ドキュメント取込", "ドキュメントDB照会"],
+            ["ドキュメント検索", "ドキュメント取込", "ドキュメントDB照会"],
             icons=["bi-universal-access", "bi-brush", "bi-play-btn"],
             menu_icon="bi-book",
             default_index=0,
@@ -173,7 +173,7 @@ class DocsSearch:
             },
         )
 
-        if selected == "要件入力":
+        if selected == "ドキュメント検索":
             _self.requirements_input()
         elif selected == "ドキュメント取込":
             _self.docs_upload()
