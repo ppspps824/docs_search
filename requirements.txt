@@ -1,0 +1,8 @@
+streamlit
+openai
+boto3
+streamlit-option-menu
+streamlit-cognito-auth
+st-supabase-connection
+langchain
+chardet
