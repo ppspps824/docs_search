@@ -72,38 +72,39 @@ class DocsSearch:
             type=["txt", "md", "docx", "xls", "xlsx"],
             accept_multiple_files=True,
         )
-        if uploaded_files:
-            for num, uploaded_file in enumerate(uploaded_files):
-                with st.spinner(
-                    f"[{num+1}/{len(uploaded_files)}]{uploaded_file.name} 取込中..."
-                ):
-                    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                        fp = Path(tmp_file.name)
-                        fp.write_bytes(uploaded_file.getvalue())
-                        _, ext = os.path.splitext(uploaded_file.name)
-                        if ext in [".txt", ".md"]:
-                            loader = TextLoader(fp, autodetect_encoding=True)
-                        elif ext == ".docx":
-                            loader = UnstructuredWordDocumentLoader(
-                                fp, autodetect_encoding=True
-                            )
-                        elif ext in [".xls", ".xlsx"]:
-                            loader = UnstructuredExcelLoader(
-                                fp, autodetect_encoding=True
-                            )
-                        else:
-                            st.error(f"未対応のファイル形式です。/{ext}")
-                            st.stop()
-
-                    content = loader.load()[0].page_content
-                    summary = _self.generate_summary(content)
-                    tags = _self.generate_tags(content)
-                    _self.db.upload_document(uploaded_file, summary, tags)
-                    with st.expander(
-                        f"[{num+1}/{len(uploaded_files)}]取込完了:\n{uploaded_file.name}"
+        if st.button("取り込み"):
+            if uploaded_files:
+                for num, uploaded_file in enumerate(uploaded_files):
+                    with st.spinner(
+                        f"[{num+1}/{len(uploaded_files)}]{uploaded_file.name} 取込中..."
                     ):
-                        st.write(summary)
-                        st.write(tags)
+                        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                            fp = Path(tmp_file.name)
+                            fp.write_bytes(uploaded_file.getvalue())
+                            _, ext = os.path.splitext(uploaded_file.name)
+                            if ext in [".txt", ".md"]:
+                                loader = TextLoader(fp, autodetect_encoding=True)
+                            elif ext == ".docx":
+                                loader = UnstructuredWordDocumentLoader(
+                                    fp, autodetect_encoding=True
+                                )
+                            elif ext in [".xls", ".xlsx"]:
+                                loader = UnstructuredExcelLoader(
+                                    fp, autodetect_encoding=True
+                                )
+                            else:
+                                st.error(f"未対応のファイル形式です。/{ext}")
+                                st.stop()
+
+                        content = loader.load()[0].page_content
+                        summary = _self.generate_summary(content)
+                        tags = _self.generate_tags(content)
+                        _self.db.upload_document(uploaded_file, summary, tags)
+                        with st.expander(
+                            f"[{num+1}/{len(uploaded_files)}]取込完了:\n{uploaded_file.name}"
+                        ):
+                            st.write(summary)
+                            st.write(tags)
 
     def requirements_input(_self):
         # ユーザー入力画面
