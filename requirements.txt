@@ -21,6 +21,7 @@ cryptography==41.0.7
 dataclasses-json==0.6.3
 deprecation==2.1.0
 distro==1.8.0
+docx==0.2.4
 ecdsa==0.18.0
 emoji==2.9.0
 envs==1.4
