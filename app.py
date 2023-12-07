@@ -182,7 +182,9 @@ class DocsSearch:
 
 
 if __name__ == "__main__":
-    st.set_page_config(page_title="共通モジュール検索システム", layout="wide")
+    st.set_page_config(
+        page_title="共通モジュール検索システム", page_icon="📚", layout="wide"
+    )
     st.markdown(const.HIDE_ST_STYLE, unsafe_allow_html=True)
     app = DocsSearch()
     app.main()
