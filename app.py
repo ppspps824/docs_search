@@ -190,6 +190,7 @@ class DocsSearch:
                 if st.button("ドキュメントを削除する"):
                     _self.db.delete_document(selected_document["name"])
                     st.info(f"{selected_document['name']}を削除しました。")
+                    st.rerun()
             else:
                 st.error("ドキュメントが見つかりませんでした。")
 
@@ -198,8 +199,8 @@ class DocsSearch:
         selected = option_menu(
             "共通モジュール検索システム Ver.0.1",
             ["ドキュメント検索", "ドキュメント取込", "ドキュメントDB照会"],
-            icons=["bi-universal-access", "bi-brush", "bi-play-btn"],
-            menu_icon="bi-book",
+            icons=["bi-chat-dots", "bi-cloud-arrow-up", "bi-book"],
+            menu_icon="bi-search",
             default_index=0,
             orientation="horizontal",
             styles={
