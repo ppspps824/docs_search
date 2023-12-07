@@ -31,6 +31,15 @@ class Database:
         result = _self.supabase.table("documents").select("*").execute()
         return result.data
 
+    def delete_document(_self, document_name):
+        # 関連するドキュメントタグを削除
+        _self.supabase.table("document_tags").delete().eq(
+            "name", document_name
+        ).execute()
+
+        # ドキュメント自体を削除
+        _self.supabase.table("documents").delete().eq("name", document_name).execute()
+
     def upload_document(_self, file, summary, tags):
         # ドキュメントの内容をアップサート（挿入または更新）
         document_data = {"name": file.name, "summary": summary, "tags": tags}

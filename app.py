@@ -174,7 +174,7 @@ class DocsSearch:
         documents = _self.db.get_all_documents()
         document_names = [doc["name"] for doc in documents]
         selected_document_name = st.selectbox(
-            "ドキュメントを選択してください", document_names
+            "ドキュメントを選択してください", [""] + document_names
         )
 
         # 選択されたドキュメントの詳細情報を表示
@@ -187,6 +187,9 @@ class DocsSearch:
                 st.write("ドキュメント名: " + selected_document["name"])
                 st.write("機能の要約: " + selected_document["summary"])
                 st.write("タグ", selected_document["tags"])
+                if st.button("ドキュメントを削除する"):
+                    _self.db.delete_document(selected_document["name"])
+                    st.info(f"{selected_document['name']}を削除しました。")
             else:
                 st.error("ドキュメントが見つかりませんでした。")
 
