@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+import time
 from pathlib import Path
 
 import const
@@ -190,6 +191,7 @@ class DocsSearch:
                 if st.button("ドキュメントを削除する"):
                     _self.db.delete_document(selected_document["name"])
                     st.info(f"{selected_document['name']}を削除しました。")
+                    time.sleep(1)
                     st.rerun()
             else:
                 st.error("ドキュメントが見つかりませんでした。")
