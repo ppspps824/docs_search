@@ -6,11 +6,7 @@ from pathlib import Path
 import const
 import openai
 import streamlit as st
-from langchain.document_loaders import (
-    Docx2txtLoader,
-    TextLoader,
-    UnstructuredExcelLoader,
-)
+from llama_index import download_loader
 from modules.database import Database
 from streamlit_option_menu import option_menu
 
@@ -65,11 +61,68 @@ class DocsSearch:
             st.error("要約文生成失敗")
             st.stop()
 
+    def docs_read(_self, uploaded_file):
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+            fp = Path(tmp_file.name)
+            fp.write_bytes(uploaded_file.getvalue())
+            _, ext = os.path.splitext(uploaded_file.name)
+            lower_ext = ext.lower()
+            if lower_ext == ".pdf":
+                PDFReader = download_loader("PDFReader")
+                loader = PDFReader()
+                documents = loader.load_data(file=fp)
+            elif lower_ext in [".txt", ".md"]:
+                MarkdownReader = download_loader("MarkdownReader")
+                loader = MarkdownReader()
+                documents = loader.load_data(file=fp)
+            elif lower_ext == ".pptx":
+                PptxReader = download_loader("PptxReader")
+                loader = PptxReader()
+                documents = loader.load_data(file=fp)
+            elif lower_ext == ".docx":
+                DocxReader = download_loader("DocxReader")
+                loader = DocxReader()
+                documents = loader.load_data(file=fp)
+            elif lower_ext in [
+                ".xls",
+                ".xlsx",
+                ".xlsm",
+                ".xlsb",
+                ".odf",
+                ".ods",
+                ".odt",
+            ]:
+                PandasExcelReader = download_loader("PandasExcelReader")
+                loader = PandasExcelReader(pandas_config={"header": None})
+                documents = loader.load_data(file=fp)
+            else:
+                try:
+                    MarkdownReader = download_loader("MarkdownReader")
+                    loader = MarkdownReader()
+                    documents = loader.load_data(file=fp)
+                except:
+                    st.error(f"非対応のファイル形式です。：{lower_ext}")
+                    st.stop()
+        content = documents[0].text
+
+        return content
+
     def docs_upload(_self):
         st.header("ドキュメント取込")
         uploaded_files = st.file_uploader(
             "ドキュメントをアップロードしてください",
-            type=["txt", "md", "docx", "xls", "xlsx"],
+            type=[
+                "txt",
+                "md",
+                "docx",
+                ".xls",
+                ".xlsx",
+                ".xlsm",
+                ".xlsb",
+                ".odf",
+                ".ods",
+                ".odt",
+            ],
             accept_multiple_files=True,
         )
         if st.button("取り込み"):
@@ -78,23 +131,7 @@ class DocsSearch:
                     with st.spinner(
                         f"[{num+1}/{len(uploaded_files)}]{uploaded_file.name} 取込中..."
                     ):
-                        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                            fp = Path(tmp_file.name)
-                            fp.write_bytes(uploaded_file.getvalue())
-                            _, ext = os.path.splitext(uploaded_file.name)
-                            if ext in [".txt", ".md"]:
-                                loader = TextLoader(fp, autodetect_encoding=True)
-                            elif ext == ".docx":
-                                loader = Docx2txtLoader(fp)
-                            elif ext in [".xls", ".xlsx"]:
-                                loader = UnstructuredExcelLoader(
-                                    fp, autodetect_encoding=True, mode="elements"
-                                )
-                            else:
-                                st.error(f"未対応のファイル形式です。/{ext}")
-                                st.stop()
-
-                        content = loader.load()[0].page_content
+                        content = _self.docs_read(uploaded_file)
                         summary = _self.generate_summary(content)
                         tags = _self.generate_tags(content)
                         _self.db.upload_document(uploaded_file, summary, tags)
