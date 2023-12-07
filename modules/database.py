@@ -40,28 +40,10 @@ class Database:
 
         name = upserted_document.data[0]["name"]
 
-        # タグを処理
+        # ドキュメントタグ関連をアップサート（挿入または更新）
         for tag in tags:
-            # タグが存在するか確認
-            tag_data = (
-                _self.supabase.table("tags")
-                .select("name")
-                .eq("name", tag)
-                .execute()
-                .data
-            )
-            if tag_data:
-                tag_id = tag_data[0]["name"]
-            else:
-                # 新しいタグを挿入
-                inserted_tag = (
-                    _self.supabase.table("tags").insert({"name": tag}).execute()
-                )
-                tag_id = inserted_tag.data[0]["name"]
-
-            # ドキュメントタグ関連をアップサート（挿入または更新）
             _self.supabase.table("document_tags").upsert(
-                {"name": name, "tag_id": tag_id}
+                {"name": name, "tag_id": tag}
             ).execute()
 
     def search_documents_by_tags(_self, tags):
