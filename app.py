@@ -7,9 +7,9 @@ import const
 import openai
 import streamlit as st
 from langchain.document_loaders import (
+    Docx2txtLoader,
     TextLoader,
     UnstructuredExcelLoader,
-    UnstructuredWordDocumentLoader,
 )
 from modules.database import Database
 from streamlit_option_menu import option_menu
@@ -85,9 +85,7 @@ class DocsSearch:
                             if ext in [".txt", ".md"]:
                                 loader = TextLoader(fp, autodetect_encoding=True)
                             elif ext == ".docx":
-                                loader = UnstructuredWordDocumentLoader(
-                                    fp, autodetect_encoding=True
-                                )
+                                loader = Docx2txtLoader(fp, autodetect_encoding=True)
                             elif ext in [".xls", ".xlsx"]:
                                 loader = UnstructuredExcelLoader(
                                     fp, autodetect_encoding=True
