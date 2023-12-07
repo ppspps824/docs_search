@@ -68,19 +68,21 @@ class DocsSearch:
             _, ext = os.path.splitext(uploaded_file.name)
             lower_ext = ext.lower()
             if lower_ext == ".pdf":
-                PDFReader = download_loader("PDFReader")
+                PDFReader = download_loader("PDFReader", custom_path="local_dir")
                 loader = PDFReader()
                 documents = loader.load_data(file=fp)
             elif lower_ext in [".txt", ".md"]:
-                MarkdownReader = download_loader("MarkdownReader")
+                MarkdownReader = download_loader(
+                    "MarkdownReader", custom_path="local_dir"
+                )
                 loader = MarkdownReader()
                 documents = loader.load_data(file=fp)
             elif lower_ext == ".pptx":
-                PptxReader = download_loader("PptxReader")
+                PptxReader = download_loader("PptxReader", custom_path="local_dir")
                 loader = PptxReader()
                 documents = loader.load_data(file=fp)
             elif lower_ext == ".docx":
-                DocxReader = download_loader("DocxReader")
+                DocxReader = download_loader("DocxReader", custom_path="local_dir")
                 loader = DocxReader()
                 documents = loader.load_data(file=fp)
             elif lower_ext in [
@@ -92,12 +94,16 @@ class DocsSearch:
                 ".ods",
                 ".odt",
             ]:
-                PandasExcelReader = download_loader("PandasExcelReader")
+                PandasExcelReader = download_loader(
+                    "PandasExcelReader", custom_path="local_dir"
+                )
                 loader = PandasExcelReader(pandas_config={"header": None})
                 documents = loader.load_data(file=fp)
             else:
                 try:
-                    MarkdownReader = download_loader("MarkdownReader")
+                    MarkdownReader = download_loader(
+                        "MarkdownReader", custom_path="local_dir"
+                    )
                     loader = MarkdownReader()
                     documents = loader.load_data(file=fp)
                 except:
