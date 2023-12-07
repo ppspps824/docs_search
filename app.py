@@ -85,10 +85,10 @@ class DocsSearch:
                             if ext in [".txt", ".md"]:
                                 loader = TextLoader(fp, autodetect_encoding=True)
                             elif ext == ".docx":
-                                loader = Docx2txtLoader(fp, autodetect_encoding=True)
+                                loader = Docx2txtLoader(fp)
                             elif ext in [".xls", ".xlsx"]:
                                 loader = UnstructuredExcelLoader(
-                                    fp, autodetect_encoding=True
+                                    fp, autodetect_encoding=True, mode="elements"
                                 )
                             else:
                                 st.error(f"未対応のファイル形式です。/{ext}")
