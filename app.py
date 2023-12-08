@@ -9,6 +9,7 @@ import openai
 import streamlit as st
 from llama_index import download_loader
 from modules.database import Database
+from modules.s3 import s3_get_index
 from streamlit_option_menu import option_menu
 
 
@@ -110,18 +111,18 @@ class DocsSearch:
                 except:
                     st.error(f"非対応のファイル形式です。：{lower_ext}")
                     st.stop()
-        content = documents[0].text
-
-        return content
+        return documents
 
     def docs_upload(_self):
         st.header("ドキュメント取込")
         uploaded_files = st.file_uploader(
             "ドキュメントをアップロードしてください",
             type=[
-                "txt",
-                "md",
-                "docx",
+                ".txt",
+                ".pptx",
+                ".pdf",
+                ".md",
+                ".docx",
                 ".xls",
                 ".xlsx",
                 ".xlsm",
@@ -134,67 +135,46 @@ class DocsSearch:
         )
         if st.button("取り込み"):
             if uploaded_files:
+                contents = []
                 for num, uploaded_file in enumerate(uploaded_files):
                     with st.spinner(
                         f"[{num+1}/{len(uploaded_files)}]{uploaded_file.name} 取込中..."
                     ):
-                        content = _self.docs_read(uploaded_file)
-                        summary = _self.generate_summary(content)
-                        tags = _self.generate_tags(content)
-                        _self.db.upload_document(uploaded_file, summary, tags)
-                        with st.expander(
-                            f"[{num+1}/{len(uploaded_files)}]取込完了:\n{uploaded_file.name}"
-                        ):
-                            st.write(summary)
-                            st.write(tags)
+                        contents.append(_self.docs_read(uploaded_file))
+
+                        for content in contents:
+                            try:
+                                _self.db.insert_index(content)
+                            except Exception as e:
+                                print(e.args)
+                                _self.db.create_vector_store_index(content)
+
+                st.info("取込完了")
 
     def requirements_input(_self):
         # ユーザー入力画面
         st.header("ドキュメント検索")
         user_input = st.text_area("実現したい機能を入力してください")
         if st.button("検索"):
-            user_tags = _self.generate_tags(user_input, from_docs=False)  # タグ生成
-            st.json(user_tags)
-            modules = _self.db.search_documents_by_tags(user_tags)
-            print(modules)
-            if modules:
-                for module in modules:
-                    module_name = module["name"]
-                    with st.expander(module_name):
-                        document = _self.db.get_document_by_name(module_name)[0]
-                        st.write(document["summary"])
-                        st.write(document["tags"])
-            else:
-                st.write("該当するモジュールなし")
+            text_place = st.empty()
+            text = ""
+            with st.spinner("検索中"):
+                response = _self.db.query_index(s3_get_index(), user_input)
+
+            for next_text in response.response_gen:
+                text += next_text.replace("。", "。\n\n")
+                text_place.write(text)
 
     def show_docs(_self):
         # ドキュメントDB照会画面
         st.header("ドキュメントDB照会")
-
-        # ドキュメントの一覧を取得
-        documents = _self.db.get_all_documents()
-        document_names = [doc["name"] for doc in documents]
-        selected_document_name = st.selectbox(
-            "ドキュメントを選択してください", [""] + document_names
-        )
-
-        # 選択されたドキュメントの詳細情報を表示
-        if selected_document_name:
-            selected_document = next(
-                (doc for doc in documents if doc["name"] == selected_document_name),
-                None,
-            )
-            if selected_document:
-                st.write("ドキュメント名: " + selected_document["name"])
-                st.write("機能の要約: " + selected_document["summary"])
-                st.write("タグ", selected_document["tags"])
-                if st.button("ドキュメントを削除する"):
-                    _self.db.delete_document(selected_document["name"])
-                    st.info(f"{selected_document['name']}を削除しました。")
-                    time.sleep(1)
-                    st.rerun()
-            else:
-                st.error("ドキュメントが見つかりませんでした。")
+        doc_ids = _self.db.view_index()
+        select_doc_id = st.selectbox("削除するdoc_idを選択", options=doc_ids)
+        if st.button("削除"):
+            _self.db.delete_index(select_doc_id)
+            st.info("削除しました。")
+            time.sleep(0.5)
+            st.rerun()
 
     def main(_self):
         # Streamlit UI

@@ -1,73 +1,58 @@
+import logging
+import sys
+
 import streamlit as st
-from st_supabase_connection import SupabaseConnection
+from llama_index import VectorStoreIndex
+from modules.s3 import s3_get_index, s3_upload
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 
 class Database:
-    def __init__(_self, connection_name: str = "init"):
-        print("__init_")
-        _self.supabase = _self.get_connection(connection_name)
+    def __init__(_self):
+        pass
 
-    @st.cache_resource
-    def get_connection(_self, connection_name):
-        print("get_connection")
-        supabase = st.connection(
-            name=connection_name,
-            type=SupabaseConnection,
-            url=st.secrets["supabase_url"],
-            key=st.secrets["supabase_key"],
-        )
-        return supabase
+    def create_vector_store_index(_self, documents):
+        index = VectorStoreIndex.from_documents(documents)
+        s3_upload(index)
 
-    def get_document_by_name(_self, document_name):
-        result = (
-            _self.supabase.table("documents")
-            .select("*")
-            .eq("name", document_name)
-            .execute()
-        )
-        return result.data
+        return index
 
-    def get_all_documents(_self):
-        result = _self.supabase.table("documents").select("*").execute()
-        return result.data
+    def query_index(_self, index, query):
+        query_engine = index.as_query_engine(streaming=True)
+        response = query_engine.query(query)
+        return response
 
-    def delete_document(_self, document_name):
-        # 関連するドキュメントタグを削除
-        _self.supabase.table("document_tags").delete().eq(
-            "name", document_name
-        ).execute()
+    def insert_index(_self, documents):
+        index = s3_get_index()
+        for doc in documents:
+            index.insert(doc)
+        s3_upload(index)
 
-        # ドキュメント自体を削除
-        _self.supabase.table("documents").delete().eq("name", document_name).execute()
+    def view_index(_self):
+        try:
+            index = s3_get_index()
+        except:
+            st.error("作成されたindexがありません。")
+            st.stop()
 
-    def upload_document(_self, file, summary, tags):
-        # ドキュメントの内容をアップサート（挿入または更新）
-        document_data = {"name": file.name, "summary": summary, "tags": tags}
-        upserted_document = (
-            _self.supabase.table("documents").upsert(document_data).execute()
-        )
+        joined_dict = {}
+        for ref_doc_id, ref_doc_info in index.ref_doc_info.items():
+            joined_text = ""
+            for node_id in ref_doc_info.node_ids:
+                joined_text += f"\n{index.storage_context.docstore.docs[node_id].text}"
+            joined_dict[ref_doc_id] = joined_text
 
-        name = upserted_document.data[0]["name"]
+        st.dataframe(joined_dict)
 
-        # ドキュメントタグ関連をアップサート（挿入または更新）
-        for tag in tags:
-            _self.supabase.table("document_tags").upsert(
-                {"name": name, "tag_id": tag}
-            ).execute()
+        return joined_dict.keys()
 
-    def search_documents_by_tags(_self, tags):
-        # タグに基づくドキュメントを検索
+    def delete_index(_self, doc_id):
+        index = s3_get_index()
+        # for ref_doc_id, ref_doc_info in index.ref_doc_info.items():
+        #     for node_id in ref_doc_info.node_ids:
+        #         index.storage_context.docstore.delete_document(node_id)
+        index.delete(doc_id)
 
-        final_results = []
-        for tag in tags:
-            search_term = f"%{tag}%"
-            result = (
-                _self.supabase.query("name,tag_id", table="document_tags")
-                .ilike("tag_id", search_term)
-                .execute()
-            )
-            print(tag, result.data)
-
-            final_results.extend(result.data)
-
-        return final_results
+        s3_upload(index)

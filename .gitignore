@@ -1,6 +1,5 @@
 .venv/
 secrets.toml
-*.pickle
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
