@@ -33,7 +33,8 @@ class Database:
     def view_index(_self):
         try:
             index = s3_get_index()
-        except:
+        except Exception as e:
+            print(e.args)
             st.error("作成されたindexがありません。")
             st.stop()
 
