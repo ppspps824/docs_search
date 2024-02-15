@@ -18,12 +18,15 @@ class DocsSearch:
         # OpenAIのクライアントを初期化
         openai.api_key = st.secrets["OPEN_AI_KEY"]
 
+        if "all_text" not in st.session_state:
+            st.session_state.all_text = []
+
         # SupaBaseのコネクションを初期化
         _self.db = Database()
 
     def ask_ai(_self, prompt):
         response = openai.chat.completions.create(
-            model="gpt-4-1106-preview", messages=[{"role": "user", "content": prompt}]
+            model="gpt-4-turbo-preview", messages=[{"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content
 
@@ -153,21 +156,39 @@ class DocsSearch:
 
     def requirements_input(_self):
         # ユーザー入力画面
-        st.header("ドキュメント検索")
-        user_input = st.text_area("実現したい機能を入力してください")
-        if st.button("検索"):
-            text_place = st.empty()
-            text = ""
-            with st.spinner("検索中"):
-                response = _self.db.query_index(s3_get_index(), user_input)
+        user_prompt = st.chat_input("user:")
+        assistant_text = ""
 
-            for next_text in response.response_gen:
-                text += next_text.replace("。", "。\n\n")
-                text_place.write(text)
+        for text_info in st.session_state.all_text:
+            with st.chat_message(text_info["role"], avatar=text_info["role"]):
+                st.write(text_info["role"] + ":\n\n" + text_info["content"])
+
+        if user_prompt:
+            with st.chat_message("user", avatar="user"):
+                st.write("user" + ":\n\n" + user_prompt)
+
+            st.session_state.all_text.append({"role": "user", "content": user_prompt})
+
+            if len(st.session_state.all_text) > 10:
+                st.session_state.all_text.pop(1)
+
+            response = _self.db.query_index(s3_get_index(), user_prompt)
+
+            with st.chat_message("assistant", avatar="assistant"):
+                place = st.empty()
+                for next_text in response.response_gen:
+                    content = next_text.replace("。", "。\n\n")
+                    if content:
+                        assistant_text += content
+                        place.write("assistant" + ":\n\n" + assistant_text)
+
+            st.session_state.all_text.append(
+                {"role": "assistant", "content": assistant_text}
+            )
 
     def show_docs(_self):
         # ドキュメントDB照会画面
-        st.header("ドキュメントDB照会")
+        st.header("DB照会")
         doc_ids = _self.db.view_index()
         select_doc_id = st.selectbox("削除するdoc_idを選択", options=doc_ids)
         if st.button("削除"):
@@ -178,40 +199,40 @@ class DocsSearch:
 
     def main(_self):
         # Streamlit UI
-        selected = option_menu(
-            "共通モジュール検索システム Ver.0.1",
-            ["ドキュメント検索", "ドキュメント取込", "ドキュメントDB照会"],
-            icons=["bi-chat-dots", "bi-cloud-arrow-up", "bi-book"],
-            menu_icon="bi-search",
-            default_index=0,
-            orientation="horizontal",
-            styles={
-                "container": {
-                    "margin": "0!important",
-                    "padding": "0!important",
-                    "background-color": "#fafafa",
+        with st.sidebar:
+            selected = option_menu(
+                "ほけんAIチャット",
+                ["チャット", "資料取り込み", "DB照会"],
+                icons=["bi-chat-dots", "bi-cloud-arrow-up", "bi-book"],
+                menu_icon="bi-search",
+                default_index=0,
+                styles={
+                    "container": {
+                        "margin": "0!important",
+                        "padding": "0!important",
+                        "background-color": "#fafafa",
+                    },
+                    "icon": {"color": "fafafa", "font-size": "25px"},
+                    "nav-link": {
+                        "font-size": "20px",
+                        "margin": "0px",
+                        "--hover-color": "#eee",
+                    },
+                    "nav-link-selected": {"background-color": "004a55"},
                 },
-                "icon": {"color": "fafafa", "font-size": "25px"},
-                "nav-link": {
-                    "font-size": "20px",
-                    "margin": "0px",
-                    "--hover-color": "#eee",
-                },
-                "nav-link-selected": {"background-color": "004a55"},
-            },
-        )
+            )
 
-        if selected == "ドキュメント検索":
+        if selected == "チャット":
             _self.requirements_input()
-        elif selected == "ドキュメント取込":
+        elif selected == "資料取り込み":
             _self.docs_upload()
-        elif selected == "ドキュメントDB照会":
+        elif selected == "DB照会":
             _self.show_docs()
 
 
 if __name__ == "__main__":
     st.set_page_config(
-        page_title="共通モジュール検索システム", page_icon="📚", layout="wide"
+        page_title="ほけんAIチャット", page_icon="❣️"
     )
     st.markdown(const.HIDE_ST_STYLE, unsafe_allow_html=True)
     app = DocsSearch()
