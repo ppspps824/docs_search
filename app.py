@@ -24,16 +24,6 @@ def init_page():
         st.session_state["knowledge_base_id"] = st.secrets["KNOWLEDGE_ID"]
         st.session_state["rag_on"] = st.toggle("Knowledge base",value=True)
     
-        with st.expander(label="Configurations", expanded=True):
-            max_tokens_to_sample = st.slider(label="Maximum length", min_value=0, max_value=2048, value=300)
-            st.session_state["max_tokens_to_sample"] = max_tokens_to_sample
-    
-            temperature = st.slider(label="Temperature", min_value=0.0, max_value=1.0, value=0.1, step=0.1)
-            st.session_state["temperature"] = temperature
-    
-            top_p = st.slider(label="top_p", min_value=0.00, max_value=1.00, value=0.90, step=0.01)
-            st.session_state["top_p"] = top_p
-
 def show_page():
     st.markdown("<center><h1>ゆうひほけんチャット🌇</h1></center>",unsafe_allow_html=True)
     # 過去のやり取りを表示
@@ -69,9 +59,6 @@ def _invoke_model_with_response_stream_claude(input, message_placeholder, full_r
     body = json.dumps(
         {
             "prompt": "system:あなたは生命保険の問い合わせを行うAIチャットボットです。顧客からの問い合わせに適切に回答してください。"+"\n\n" + "\n\n".join(messages) + "\n\nAssistant:",
-            "max_tokens_to_sample": st.session_state["max_tokens_to_sample"],
-            "temperature": st.session_state["temperature"],
-            "top_p": st.session_state["top_p"],
         }
     )
  
