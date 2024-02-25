@@ -3,6 +3,7 @@ import boto3
 import json
 import const
 from PIL import Image
+import traceback
 
 def user_change():
     st.session_state.messages=[]
@@ -53,7 +54,7 @@ def invoke_model(message_placeholder, docs_input=""):
     )
     try:
         with st.spinner("確認中..."):
-            response = bedrock.invoke_model(modelId=st.session_state["bedrock_model"], body=body)
+            response = bedrock.invoke_model_with_response_stream(modelId=st.session_state["bedrock_model"], body=body)
         stream = response.get("body")
         full_response=""
         if stream:
@@ -67,6 +68,7 @@ def invoke_model(message_placeholder, docs_input=""):
     except Exception as e:
         st.error("エラーが発生しました。しばらく時間をおいてから再度ご利用ください。")
         print(e)
+        print(list(traceback.TracebackException.from_exception(e).format()))
         st.stop()
 
     return full_response
@@ -82,6 +84,7 @@ def retrieve(input,message_placeholder):
     except Exception as e:
         st.error("エラーが発生しました。しばらく時間をおいてから再度ご利用ください。")
         print(e)
+        print(list(traceback.TracebackException.from_exception(e).format()))
         st.stop()
 
     full_response=invoke_model(message_placeholder,retrieve_response["retrievalResults"][0]["content"]["text"])
