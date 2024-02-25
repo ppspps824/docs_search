@@ -2,15 +2,16 @@ import streamlit as st
 import boto3
 import json
 import const
+from PIL import Image
 
 def user_change():
     st.session_state.messages=[]
 
 def init():
+    st.set_page_config(page_title="ゆうひほけんチャット", page_icon="❣️")
     if "messages" not in st.session_state:
         st.session_state.messages=[]
-        
-    st.set_page_config(page_title="ゆうひほけんチャット", page_icon="❣️")
+        st.session_state.avater_icon=Image.open("avater.png")
     st.markdown(const.HIDE_ST_STYLE,unsafe_allow_html=True)
     st.session_state["knowledge_base_id"] = st.secrets["KNOWLEDGE_ID"]
     
@@ -23,7 +24,7 @@ def init():
 def main():
     st.markdown("<center><h1>ゆうひほけんチャット🌇</h1></center>",unsafe_allow_html=True)
 
-    with st.chat_message("Assistant"):
+    with st.chat_message("Assistant",avatar=st.session_state["avater_icon"]):
         st.write(f"{st.session_state['user_name']}さん、こんにちは！何かお困りごとはありますか？")
     for info in st.session_state.messages:
         with st.chat_message(info["role"]):
@@ -34,7 +35,7 @@ def main():
         with st.chat_message("Human"):
             st.markdown(prompt)
     
-        with st.chat_message("Assistant"):
+        with st.chat_message("Assistant",avatar=st.session_state["avater_icon"]):
             message_placeholder = st.empty()
             response = retrieve(prompt,message_placeholder)
                 
