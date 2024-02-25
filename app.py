@@ -22,14 +22,13 @@ def init():
     
 def main():
     st.markdown("<center><h1>ゆうひほけんチャット🌇</h1></center>",unsafe_allow_html=True)
-    # 過去のやり取りを表示
+
     with st.chat_message("Assistant"):
         st.write(f"{st.session_state['user_name']}さん、こんにちは！何かお困りごとはありますか？")
     for info in st.session_state.messages:
         with st.chat_message(info["role"]):
             st.write(info["content"])
 
-    # ユーザーからの新しい入力を取得(Bedrock用)
     if prompt := st.chat_input(""):
         st.session_state.messages.append({"role": "Human", "content": prompt})
         with st.chat_message("Human"):
@@ -37,13 +36,11 @@ def main():
     
         with st.chat_message("Assistant"):
             message_placeholder = st.empty()
-            response = retrieve_and_generate(prompt,message_placeholder)
+            response = retrieve(prompt,message_placeholder)
                 
         st.session_state.messages.append({"role": "Assistant", "content": response})
 
-def invoke_model_with_response_stream_claude(message_placeholder, docs_input=""):
-    # Bedrockからのストリーミング応答を処理
-
+def invoke_model(message_placeholder, docs_input=""):
     bedrock = boto3.client(service_name="bedrock-runtime", region_name=const.REGION_NAME)
     messages = [message["role"] + ":" + message["content"] for message in st.session_state.messages]
 
@@ -55,7 +52,7 @@ def invoke_model_with_response_stream_claude(message_placeholder, docs_input="")
     )
     try:
         with st.spinner("確認中..."):
-            response = bedrock.invoke_model_with_response_stream(modelId=st.session_state["bedrock_model"], body=body)
+            response = bedrock.invoke_model(modelId=st.session_state["bedrock_model"], body=body)
         stream = response.get("body")
         full_response=""
         if stream:
@@ -72,9 +69,7 @@ def invoke_model_with_response_stream_claude(message_placeholder, docs_input="")
 
     return full_response
 
-def retrieve_and_generate(input,message_placeholder):
-    # BedrockからのRAG応答を処理
-
+def retrieve(input,message_placeholder):
     bedrock_agent_runtime = boto3.client("bedrock-agent-runtime", region_name=const.REGION_NAME)
     try:
         with st.spinner("確認中..."):
@@ -86,7 +81,7 @@ def retrieve_and_generate(input,message_placeholder):
         st.error("エラーが発生しました。しばらく時間をおいてから再度ご利用ください。")
         st.stop()
 
-    full_response=invoke_model_with_response_stream_claude(message_placeholder,retrieve_response["retrievalResults"][0]["content"]["text"])
+    full_response=invoke_model(message_placeholder,retrieve_response["retrievalResults"][0]["content"]["text"])
 
     return full_response
 
