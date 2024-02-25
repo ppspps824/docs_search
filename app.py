@@ -64,8 +64,9 @@ def invoke_model(message_placeholder, docs_input=""):
                     message_placeholder.markdown(full_response + "▌")
 
             message_placeholder.write(full_response)
-    except:
+    except Exception as e:
         st.error("エラーが発生しました。しばらく時間をおいてから再度ご利用ください。")
+        print(e)
         st.stop()
 
     return full_response
@@ -78,8 +79,9 @@ def retrieve(input,message_placeholder):
             knowledgeBaseId= st.session_state["knowledge_base_id"],
             retrievalQuery={"text":input},
         )
-    except:
+    except Exception as e:
         st.error("エラーが発生しました。しばらく時間をおいてから再度ご利用ください。")
+        print(e)
         st.stop()
 
     full_response=invoke_model(message_placeholder,retrieve_response["retrievalResults"][0]["content"]["text"])
