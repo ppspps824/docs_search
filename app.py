@@ -2,8 +2,6 @@ import streamlit as st
 import boto3
 import json
 import const
-import os
-
 
 
 def init_page():
@@ -42,15 +40,14 @@ def show_page():
         with st.chat_message("Assistant"):
             message_placeholder = st.empty()
             full_response = ""
-            with st.spinner("少々お待ちください..."):
-                if st.session_state["rag_on"]:
-                    full_response = _retrieve_and_generate(prompt, message_placeholder)
-                else:
-                    full_response = _invoke_model_with_response_stream_claude(prompt, message_placeholder, full_response)
+            if st.session_state["rag_on"]:
+                full_response = _retrieve_and_generate(prompt,message_placeholder,full_response)
+            else:
+                full_response = _invoke_model_with_response_stream_claude(message_placeholder, full_response)
                 
         st.session_state.messages.append({"role": "Assistant", "content": full_response})
 
-def _invoke_model_with_response_stream_claude(input, message_placeholder, full_response):
+def _invoke_model_with_response_stream_claude(message_placeholder, full_response,docs_input=""):
     # Bedrockからのストリーミング応答を処理
 
     bedrock = boto3.client(service_name="bedrock-runtime", region_name=const.REGION_NAME)
@@ -58,11 +55,16 @@ def _invoke_model_with_response_stream_claude(input, message_placeholder, full_r
 
     body = json.dumps(
         {
-            "prompt": "system:あなたは生命保険の問い合わせを行うAIチャットボットです。顧客からの問い合わせに適切に回答してください。"+"\n\n" + "\n\n".join(messages) + "\n\nAssistant:",
+            "prompt": "system:"+const.SYSTEM_PROMPT+ "infomations:"+docs_input+"\n\n" + "\n\n".join(messages) + "\n\nAssistant:",
+            "max_tokens_to_sample":1000
         }
     )
- 
-    response = bedrock.invoke_model_with_response_stream(modelId=st.session_state["bedrock_model"], body=body)
+    try:
+        response = bedrock.invoke_model_with_response_stream(modelId=st.session_state["bedrock_model"], body=body)
+    except:
+        st.error("エラーが発生しました。しばらく時間をおいてから再度ご利用ください。")
+        st.stop()
+    
     stream = response.get("body")
     if stream:
         for event in stream:
@@ -75,22 +77,22 @@ def _invoke_model_with_response_stream_claude(input, message_placeholder, full_r
 
     return full_response
 
-def _retrieve_and_generate(input, message_placeholder):
+def _retrieve_and_generate(input,message_placeholder,full_response):
     # BedrockからのRAG応答を処理
 
     bedrock_agent_runtime = boto3.client("bedrock-agent-runtime", region_name=const.REGION_NAME)
-    full_response = bedrock_agent_runtime.retrieve_and_generate(
-        input={"text": input},
-        retrieveAndGenerateConfiguration={
-            "type": "KNOWLEDGE_BASE",
-            "knowledgeBaseConfiguration": {
-                "knowledgeBaseId": st.session_state["knowledge_base_id"],
-                "modelArn": f'arn:aws:bedrock:{const.REGION_NAME}::foundation-model/{st.session_state["bedrock_model"]}',
-            },
-        },
-    )["output"]["text"]
+    with st.spinner("確認中..."):
+        try:
+            retrieve_response = bedrock_agent_runtime.retrieve(
+            knowledgeBaseId= st.session_state["knowledge_base_id"],
+            retrievalQuery={"text":input},
+        )
+        except:
+            st.error("エラーが発生しました。しばらく時間をおいてから再度ご利用ください。")
+            st.stop()
 
-    message_placeholder.write(full_response)
+    full_response=_invoke_model_with_response_stream_claude(message_placeholder,full_response,retrieve_response["retrievalResults"][0]["content"]["text"])
+
     return full_response
 
 
