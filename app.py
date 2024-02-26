@@ -10,17 +10,18 @@ def user_change():
 
 def init():
     st.set_page_config(page_title="ゆうひほけんチャット", page_icon="❣️")
+    # 左サイドバー
+    with st.sidebar:
+        st.session_state["user_name"] = st.selectbox("契約者を選択",options=["伊藤 智也","田中 真綾","加藤 充","松田 結衣"],on_change=user_change)
+        bedrock_model = st.selectbox("Bedrockのモデルを選択してください", (const.BEDROCK_MODEL_LIST))
+        st.session_state["bedrock_model"] = bedrock_model
+
     if "messages" not in st.session_state:
         st.session_state.messages=[]
         st.session_state.avater_icon=Image.open("avater.png")
     st.markdown(const.HIDE_ST_STYLE,unsafe_allow_html=True)
     st.session_state["knowledge_base_id"] = st.secrets["KNOWLEDGE_ID"]
     
-    # 左サイドバー
-    with st.sidebar:
-        st.session_state["user_name"] = st.selectbox("契約者を選択",options=["伊藤 智也","田中 真綾","加藤 充","松田 結衣"],on_change=user_change)
-        bedrock_model = st.selectbox("Bedrockのモデルを選択してください", (const.BEDROCK_MODEL_LIST))
-        st.session_state["bedrock_model"] = bedrock_model
     
 def main():
     st.markdown("<center><h1>ゆうひほけんチャット🌇</h1></center>",unsafe_allow_html=True)
@@ -50,8 +51,10 @@ def invoke_model(message_placeholder, docs_input=""):
         {
             "prompt": "system:"+const.SYSTEM_PROMPT.replace("%%user_name%%",st.session_state["user_name"])+ "infomations:"+docs_input+"\n\n" + "\n\n".join(messages) + "\n\nAssistant:",
             "max_tokens_to_sample":1000
-        }
+        }, ensure_ascii=False
     )
+    print(st.session_state["user_name"])
+    print(body)
     try:
         with st.spinner("確認中..."):
             response = bedrock.invoke_model_with_response_stream(modelId=st.session_state["bedrock_model"], body=body)
@@ -87,7 +90,7 @@ def retrieve(input,message_placeholder):
         print(e)
         print(list(traceback.TracebackException.from_exception(e).format()))
         st.stop()
-    model_prompt = retrieve_response["retrievalResults"][0]["content"]["text"]
+    model_prompt = json.dumps(retrieve_response["retrievalResults"], ensure_ascii=False)
     print(model_prompt)
     full_response=invoke_model(message_placeholder,model_prompt)
 
