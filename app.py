@@ -76,6 +76,7 @@ def invoke_model(message_placeholder, docs_input=""):
 def retrieve(input,message_placeholder):
     bedrock_agent_runtime = boto3.client("bedrock-agent-runtime", region_name=const.REGION_NAME)
     try:
+        print(input)
         with st.spinner("確認中..."):
             retrieve_response = bedrock_agent_runtime.retrieve(
             knowledgeBaseId= st.session_state["knowledge_base_id"],
@@ -86,8 +87,9 @@ def retrieve(input,message_placeholder):
         print(e)
         print(list(traceback.TracebackException.from_exception(e).format()))
         st.stop()
-
-    full_response=invoke_model(message_placeholder,retrieve_response["retrievalResults"][0]["content"]["text"])
+    model_prompt = retrieve_response["retrievalResults"][0]["content"]["text"]
+    print(model_prompt)
+    full_response=invoke_model(message_placeholder,model_prompt)
 
     return full_response
 
