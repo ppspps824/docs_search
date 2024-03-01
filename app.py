@@ -27,9 +27,9 @@ def main():
     st.markdown("<center><h1>ゆうひほけんチャット🌇</h1></center>",unsafe_allow_html=True)
 
     with st.chat_message("Assistant",avatar=st.session_state["avater_icon"]):
-        st.write(f"{st.session_state['user_name']}さん、こんにちは！何かお困りごとはありますか？")
+        st.write(f"{st.session_state['user_name']}様、こんにちは！何かお困りごとはありますか？")
     for info in st.session_state.messages:
-        with st.chat_message(info["role"]):
+        with st.chat_message(info["role"],avatar=st.session_state["avater_icon"] if info["role"] == "Assistant" else "user"):
             st.write(info["content"])
 
     if prompt := st.chat_input(""):
