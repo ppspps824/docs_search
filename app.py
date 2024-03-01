@@ -27,7 +27,8 @@ def main():
     st.markdown("<center><h1>ゆうひほけんチャット🌇</h1></center>",unsafe_allow_html=True)
 
     with st.chat_message("Assistant",avatar=st.session_state["avater_icon"]):
-        st.write(f"{st.session_state['user_name']}様、こんにちは！何かお困りごとはありますか？")
+        init_message=f"こんにちは！何かお困りごとはございますでしょうか？"
+        st.write(init_message)
     for info in st.session_state.messages:
         with st.chat_message(info["role"],avatar=st.session_state["avater_icon"] if info["role"] == "Assistant" else "user"):
             st.write(info["content"])
@@ -45,7 +46,9 @@ def main():
 
 def invoke_model(message_placeholder, docs_input=""):
     bedrock = boto3.client(service_name="bedrock-runtime", region_name=const.REGION_NAME)
-    messages = [message["role"] + ":" + message["content"] for message in st.session_state.messages]
+    messages = [f"Human:こんにちは。{st.session_state['user_name']}です。\n\nAssistant:こんにちは！何かお困りごとはございますでしょうか？"]+[message["role"] + ":" + message["content"] for message in st.session_state.messages]
+
+    print(messages)
 
     body = json.dumps(
         {
